@@ -2963,6 +2963,34 @@ static int mp_property_sub_text(void *ctx, struct m_property *prop,
     return M_PROPERTY_NOT_IMPLEMENTED;
 }
 
+static int mp_property_sub_text_all(void *ctx, struct m_property *prop,
+                        int action, void *arg)
+{
+    MPContext *mpctx = ctx;
+    const int *def = prop->priv;
+    int sub_index = def[0];
+    int type = def[1];
+    struct track *track = mpctx->current_track[sub_index][STREAM_SUB];
+    struct dec_sub *sub = track ? track->d_sub : NULL;
+    double pts = mpctx->playback_pts;
+    if (!sub || pts == MP_NOPTS_VALUE)
+        return M_PROPERTY_UNAVAILABLE;
+
+    switch (action) {
+    case M_PROPERTY_GET: {
+        char *text = sub_get_text_all(sub, type);
+        if (!text)
+            text = talloc_strdup(NULL, "");
+        *(char **)arg = text;
+        return M_PROPERTY_OK;
+    }
+    case M_PROPERTY_GET_TYPE:
+        *(struct m_option *)arg = (struct m_option){.type = CONF_TYPE_STRING};
+        return M_PROPERTY_OK;
+    }
+    return M_PROPERTY_NOT_IMPLEMENTED;
+}
+
 static struct sd_times get_times(void *ctx, struct m_property *prop,
                                 int action, void *arg)
 {
@@ -3933,7 +3961,11 @@ static const struct m_property mp_properties_base[] = {
     {"sub-ass-extradata", mp_property_sub_ass_extradata},
     {"sub-text", mp_property_sub_text,
         .priv = (void *)&(const int[]){0, SD_TEXT_TYPE_PLAIN}},
+    {"sub-text-all", mp_property_sub_text_all,
+        .priv = (void *)&(const int[]){0, SD_TEXT_TYPE_PLAIN}},
     {"secondary-sub-text", mp_property_sub_text,
+        .priv = (void *)&(const int[]){1, SD_TEXT_TYPE_PLAIN}},
+    {"secondary-sub-text-all", mp_property_sub_text_all,
         .priv = (void *)&(const int[]){1, SD_TEXT_TYPE_PLAIN}},
     {"sub-text-ass", mp_property_sub_text,
         .priv = (void *)&(const int[]){0, SD_TEXT_TYPE_ASS}},

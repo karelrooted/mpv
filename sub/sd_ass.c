@@ -52,6 +52,7 @@ struct sd_ass_priv {
     struct mp_ass_packer *packer;
     struct sub_bitmap_copy_cache *copy_cache;
     char last_text[500];
+    char all_text[500000];
     struct mp_image_params video_params;
     struct mp_image_params last_params;
     struct mp_osd_res osd;
@@ -740,9 +741,91 @@ static char *get_text_buf(struct sd *sd, double pts, enum sd_text_type type)
     return ctx->last_text;
 }
 
+static void ms_to_srt_timestamp(long long milisecond, char *buff)
+{
+    int h, m, s, ms;
+    h = (milisecond / 3600000);
+    m = (milisecond / 1000 - (3600 * h)) / 60;
+    s = (milisecond / 1000 - (3600 * h) - (m * 60));
+    ms = (milisecond % 1000);
+
+    sprintf(buff, "%02d:%02d:%02d,%03d", h, m, s, ms);
+}
+
+static void append_string(struct buf *b, char *str)
+{
+    char *t = str;
+    while (*t)
+        append(b, *t++);
+}
+
+static void event_to_srt_format(struct buf *b, int position, long long start_time, long long duration)
+{
+    char str[100];
+    append(b, '\n');
+    sprintf(str, "%d", position);
+    append_string(b, &str);
+    append(b, '\n');
+    ms_to_srt_timestamp(start_time, &str);
+    append_string(b, &str);
+    char str2[6] = " --> ";
+    append_string(b, &str2);
+    ms_to_srt_timestamp(start_time + duration, &str);
+    append_string(b, &str);
+    append(b, '\n');
+}
+
+static char *get_text_buf_all(struct sd *sd, enum sd_text_type type)
+{
+    struct sd_ass_priv *ctx = sd->priv;
+    ASS_Track *track = ctx->ass_track;
+
+    struct buf b = {ctx->all_text, sizeof(ctx->all_text) - 1};
+
+    for (int i = 0; i < track->n_events; ++i)
+    {
+        ASS_Event *event = track->events + i;
+        if (event->Text)
+        {
+            int start = b.len;
+            if (type == SD_TEXT_TYPE_PLAIN)
+            {
+                event_to_srt_format(&b, i + 1, event->Start, event->Duration);
+                ass_to_plaintext(&b, event->Text);
+            }
+            else
+            {
+                char *t = event->Text;
+                while (*t)
+                    append(&b, *t++);
+            }
+            if (is_whitespace_only(&b.start[start], b.len - start))
+            {
+                b.len = start;
+            }
+            else
+            {
+                append(&b, '\n');
+            }
+        }
+    }
+
+    b.start[b.len] = '\0';
+
+    if (b.len > 0 && b.start[b.len - 1] == '\n')
+        b.start[b.len - 1] = '\0';
+
+    return ctx->all_text;
+}
+
 static char *get_text(struct sd *sd, double pts, enum sd_text_type type)
 {
     return talloc_strdup(NULL, get_text_buf(sd, pts, type));
+}
+
+static char *get_text_all(struct sd *sd, enum sd_text_type type)
+{
+    return talloc_strdup(NULL, get_text_buf_all(sd, type));
 }
 
 static struct sd_times get_times(struct sd *sd, double pts)
@@ -881,6 +964,7 @@ const struct sd_functions sd_ass = {
     .decode = decode,
     .get_bitmaps = get_bitmaps,
     .get_text = get_text,
+    .get_text_all = get_text_all,
     .get_times = get_times,
     .control = control,
     .reset = reset,

@@ -392,6 +392,20 @@ char *sub_get_text(struct dec_sub *sub, double pts, enum sd_text_type type)
     return text;
 }
 
+// The returned string is talloc'ed.
+char *sub_get_text_all(struct dec_sub *sub, enum sd_text_type type)
+{
+    pthread_mutex_lock(&sub->lock);
+    char *text = NULL;
+
+    update_segment(sub);
+
+    if (sub->sd->driver->get_text_all)
+        text = sub->sd->driver->get_text_all(sub->sd, type);
+    pthread_mutex_unlock(&sub->lock);
+    return text;
+}
+
 char *sub_ass_get_extradata(struct dec_sub *sub)
 {
     if (strcmp(sub->sd->codec->codec, "ass") != 0)
