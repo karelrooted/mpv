@@ -2745,6 +2745,10 @@ Subtitles
     Can be used to disable display of secondary subtitles, but still select and
     decode them.
 
+``--sub-newline-to-space``, ``--no-sub-newline-to-space``
+    Can be used to replace newline with space in subtitles, useful when render two
+    subtitle at the bottom.
+
 ``--sub-clear-on-seek``
     (Obscure, rarely useful.) Can be used to play broken mkv files with
     duplicate ReadOrder fields. ReadOrder is the first field in a

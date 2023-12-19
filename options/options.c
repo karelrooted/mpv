@@ -285,6 +285,7 @@ const struct m_sub_options mp_subtitle_sub_opts = {
     .opts = (const struct m_option[]){
         {"sub-fps", OPT_FLOAT(sub_fps)},
         {"sub-speed", OPT_FLOAT(sub_speed)},
+        {"sub-newline-to-space", OPT_BOOL(sub_newline_to_space)},
         {"sub-forced-events-only", OPT_BOOL(sub_forced_events_only)},
         {"stretch-dvd-subs", OPT_BOOL(stretch_dvd_subs)},
         {"stretch-image-subs-to-screen", OPT_BOOL(stretch_image_subs)},
@@ -325,6 +326,7 @@ const struct m_sub_options mp_subtitle_sub_opts = {
     },
     .size = sizeof(OPT_BASE_STRUCT),
     .defaults = &(OPT_BASE_STRUCT){
+        .sub_newline_to_space = false,
         .sub_speed = 1.0,
         .ass_enabled = true,
         .sub_scale_by_window = true,
@@ -1089,6 +1091,7 @@ static const struct MPOpts mp_default_opts = {
         "sub-pos",
         "secondary-sub-pos",
         "sub-visibility",
+        "sub-newline-to-space",
         "sub-scale",
         "sub-use-margins",
         "sub-ass-force-margins",
